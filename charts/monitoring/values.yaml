@@ -1,0 +1,104 @@
+# Updated Prometheus configuration
+prometheus:
+  enabled: true
+  service:
+    type: NodePort
+    port: 9090
+    targetPort: 9090  # Ensure capitalization consistency
+    nodePort: 32100
+  persistence:
+    enabled: true
+    storageClass: standard
+    accessMode: ReadWriteOnce
+    size: 1Gi
+  rbac:
+    create: true
+  ingress:
+    enabled: false
+  additionalScrapeConfigs: |-
+    - job_name: 'kubernetes-pods'
+      kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: ['*']
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+        replacement: /metrics
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+# Updated Grafana configuration
+grafana:
+  enabled: true
+  service:
+    type: NodePort
+    port: 3000
+    targetPort: 3000  # Ensure capitalization consistency
+    nodePort: 32200
+  persistence:
+    enabled: true
+    storageClass: standard
+    accessMode: ReadWriteOnce
+    size: 1Gi
+  ingress:
+    enabled: false
+
+# Define storage classes if they are not provided by default
+storageClass:
+  prometheus: standard
+  grafana: standard
+
+# Service account settings
+serviceAccount:
+  create: false
+
+# Kubernetes Deployment manifest for Grafana
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      initContainers:
+      - name: grafana-init
+        image: busybox
+        command: ['sh', '-c', 'chown -R 472:472 /var/lib/grafana']
+        volumeMounts:
+        - name: grafana-storage
+          mountPath: /var/lib/grafana
+      containers:
+      - name: grafana
+        image: grafana/grafana
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: grafana-storage
+          mountPath: /var/lib/grafana
+        securityContext:  # Adding security context
+          runAsUser: 472
+          fsGroup: 472  # Replace with appropriate group ID
+      volumes:
+      - name: grafana-storage
+        persistentVolumeClaim:
+          claimName: grafana-pvc

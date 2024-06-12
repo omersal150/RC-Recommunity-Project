@@ -1,0 +1,63 @@
+pipeline {
+    agent {
+        kubernetes {
+            label 'jenkins-slave-pipeline-2'
+            yaml '''
+            apiVersion: v1
+            kind: Pod
+            spec:
+                serviceAccount: jenkins-sa
+                containers:
+                  - name: slave
+                    image: docker:latest
+                    tty: true
+                    securityContext:  # This section grants privileged access
+                        privileged: true
+                  - name: maven
+                    image: maven:alpine
+                    command:
+                    - cat
+                    tty: true
+            '''
+        }
+    }
+
+    stages {
+        stage('checkout git') {
+            steps {
+                script {
+                    checkout scm
+                }
+            }
+        }
+
+        // Build and push with build tag (replace with actual build commands)
+        stage('Build and Push the image with tags') {
+            environment {
+                auth = 'dockerauth'
+            }
+            steps { 
+                container('slave') {
+                    script {
+                        def image = docker.build("roiyki/persudoku-flask", "./app/Backend")
+                        withDockerRegistry(credentialsId: 'docker-credentials') {
+                            image.push("${env.BUILD_NUMBER}")
+                            image.push("latest")
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Pipeline POST:'
+        }
+        success {
+            echo 'Pipeline SUCCESS!'
+        }
+        failure {
+            echo 'Pipeline FAILED, check the logs for more information!'
+        }
+    }
+}
