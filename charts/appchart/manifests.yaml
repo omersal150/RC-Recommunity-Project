@@ -13,7 +13,7 @@ metadata:
   labels:
     helm.sh/chart: appchart-0.1.0
     app.kubernetes.io/name: appchart
-    app.kubernetes.io/instance: persudoku
+    app.kubernetes.io/instance: rc-recommunity
     app.kubernetes.io/version: "1.16.0"
     app.kubernetes.io/managed-by: Helm
   annotations:

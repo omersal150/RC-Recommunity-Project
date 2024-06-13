@@ -4,7 +4,7 @@ replicaCount:
 
 flask:
   image:
-    repository: roiyki/persudoku-flask
+    repository: omersal/rc-recommunity
     pullPolicy: IfNotPresent
     tag: "latest"
     secretName: regcred
@@ -13,7 +13,7 @@ flask:
     port: 5000
     nodePort: 30000
   environment:
-    MONGO_URI: mongodb://mongo-service.mongo-namespace:27017/sudoku_app
+    MONGO_URI: mongodb://mongo-service.mongo-namespace:27017/rc_recommunity
 
 mongo:
   image:

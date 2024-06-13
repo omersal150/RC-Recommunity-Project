@@ -98,7 +98,11 @@ spec:
         securityContext:  # Adding security context
           runAsUser: 472
           fsGroup: 472  # Replace with appropriate group ID
-      volumes:
-      - name: grafana-storage
+      resources:
+        limits:
+        cpu: "1"
+        memory: "512Mi"
+        volumes:
+        - name: grafana-storage
         persistentVolumeClaim:
           claimName: grafana-pvc

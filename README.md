@@ -1,2 +1,2 @@
-Persudoku App
-your personal sudoku profile with scores!!
+RC-Recommunity.
+Website to get info about a large varient of RC models!
