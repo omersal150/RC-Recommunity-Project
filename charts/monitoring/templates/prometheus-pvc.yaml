@@ -9,4 +9,3 @@ spec:
   resources:
     requests:
       storage: 1Gi  # Adjust the size as needed
-  volumeName: prometheus-pv

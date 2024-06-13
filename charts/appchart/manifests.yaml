@@ -68,9 +68,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: persudoku-flask
+  name: rc-recommunity
   labels:
-    app: persudoku-flask
+    app: rc-recommunity
 spec:
   type: NodePort
   ports:
@@ -79,7 +79,7 @@ spec:
       targetPort: 5000
       nodePort: 30000
   selector:
-    app: persudoku-flask
+    app: rc-recommunity
 ---
 # Source: appchart/templates/mongo-service.yaml
 apiVersion: v1
@@ -99,22 +99,22 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: persudoku-flask
+  name: rc-recommunity
   labels:
-    app: persudoku-flask
+    app: rc-recommunity
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: persudoku-flask
+      app: rc-recommunity
   template:
     metadata:
       labels:
-        app: persudoku-flask
+        app: rc-recommunity
     spec:
       containers:
         - name: flask
-          image: "roiyki/persudoku-flask:latest"
+          image: "omersal/rc-recommunity:latest"
           ports:
             - containerPort: 5000
           imagePullPolicy: Always # Ensure image is always pulled
@@ -163,7 +163,7 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "persudoku-appchart-test-connection"
+  name: "rc-recommunity-test-connection"
   labels:
     helm.sh/chart: appchart-0.1.0
     app.kubernetes.io/name: appchart
@@ -177,5 +177,5 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['persudoku-appchart:5000']
+      args: ['rc-recommunity:5000']
   restartPolicy: Never
