@@ -1,129 +1,97 @@
 pipeline {
-    agent {
-        kubernetes {
-            label 'jenkins-slave-pipeline-a'
-            defaultContainer 'jnlp'
-            yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  serviceAccountName: jenkins-sa
-  containers:
-  - name: jnlp
-    image: jenkins/inbound-agent:4.7-1-alpine
-    tty: true
-"""
-        }
-    }
-
-    environment {
-        GITHUB_TOKEN = credentials('github-secret-read-jenkins')
-        GITHUB_USER = 'Omersal'
-        REPO = 'omersal/rc-recommunity'
-        GIT_CREDENTIALS_ID = 'github-secret-read-jenkins'
-        MONGO_URI = 'mongodb://mongo-service.mongo-namespace:27017/rc_recommunity'
-    }
-
+    agent any
+    
     stages {
-        stage('Setup Git') {
-            steps {
-                catchError {
-                    container('jnlp') {
-                        sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/Rc-recommunity'
-                    }
-                }
-            }
-        }
-
-        stage('Clone and Switch to Feature Branch') {
-            steps {
-                catchError {
-                    container('jnlp') {
-                        sh '''
-                            cd /home/jenkins/agent/workspace
-                            git clone https://${GITHUB_TOKEN}@github.com/${REPO}.git
-                            cd Persudoku
-                            git fetch origin
-                            if git rev-parse --quiet --verify feature; then
-                                git checkout feature
-                            else
-                                git checkout -b feature
-                            fi
-                            git checkout main -- .
-                            git add .
-                            git pull origin main
-                            git config --global user.email "omersal@example.com"
-                            git config --global user.name "Omersal"
-                            git commit -m "Copy files from main branch to feature branch" || true
-                            git push origin feature
-                        '''
-                    }
-                }
-            }
-        }
-
-        stage('Install Requirements') {
-            steps {
-                catchError {
-                    container('jnlp') {
-                        dir('/home/jenkins/agent/workspace/Persudoku') {
-                            sh "pip install -r app/Backend/requirements.txt"
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Run Pytest') {
-            steps {
-                catchError {
-                    container('jnlp') {
-                        dir('/home/jenkins/agent/workspace/Persudoku') {
-                            sh "pytest --junitxml=test-results.xml app/tests/test_main.py"
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Manual Approval') {
+        stage('Check MongoDB Inputs - Feature Branch') {
             when {
-                beforeAgent true
-                expression { true }
+                branch 'feature'
             }
             steps {
                 script {
-                    def manualApprovalGranted = input message: 'Approve deployment to main?', ok: 'Approve'
-
-                    if (manualApprovalGranted) {
-                        container('jnlp') {
-                            dir('/home/jenkins/agent/workspace/Persudoku') {
-                                def commitHash = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-                                sh """
-                                curl -X POST \
-                                -u ${GITHUB_USER}:${GITHUB_TOKEN} \
-                                -H 'Content-Type: application/json' \
-                                -d '{"state": "success", "description": "Manual approval granted", "context": "jenkins/manual-approval"}' \
-                                https://api.github.com/repos/${REPO}/statuses/${commitHash}
-                                """
-
-                                sh 'git checkout main'
-                                sh 'git branch -D feature'
-                                sh "git push origin --delete feature"
-                                build job: 'sudokuCI2', parameters: []
-                            }
-                        }
+                    echo 'Checking MongoDB inputs for the feature branch...'
+                    // Connect to MongoDB and check inputs
+                    def mongoClient = new MongoClient('mongo-service.mongo-namespace', 27017)
+                    def db = mongoClient.getDatabase('rc_recommunity')
+                    def modelsCollection = db.getCollection('models')
+                    def commentsCollection = db.getCollection('comments')
+                    def usersCollection = db.getCollection('users')
+                    
+                    def newModelsCount = modelsCollection.countDocuments()
+                    def newCommentsCount = commentsCollection.countDocuments()
+                    def newUsersCount = usersCollection.countDocuments()
+                    
+                    if (newModelsCount > 0 && newCommentsCount > 0 && newUsersCount > 0) {
+                        echo 'MongoDB inputs check passed for the feature branch.'
                     } else {
-                        container('jnlp') {
-                            dir('/home/jenkins/agent/workspace/Persudoku') {
-                                sh 'git checkout feature'
-                                sh 'git reset --hard HEAD~1'
-                                sh 'git push origin feature --force'
-                            }
-                        }
+                        error 'MongoDB inputs check failed for the feature branch.'
                     }
                 }
             }
         }
+
+        stage('Check GitHub Push - Feature Branch') {
+            when {
+                branch 'feature'
+            }
+            steps {
+                script {
+                    echo 'Checking GitHub push for the feature branch...'
+                    // Clone the repository and check for specific files or changes
+                    git 'https://github.com/omersal150/RC-Recommunity-Project.git'
+                    if (fileExists('app.py')) {
+                        echo 'GitHub push check passed for the feature branch.'
+                    } else {
+                        error 'GitHub push check failed for the feature branch.'
+                    }
+                }
+            }
+        }
+
+        stage('Check MongoDB Inputs - Main Branch') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    echo 'Checking MongoDB inputs for the main branch...'
+                    // Connect to MongoDB and check inputs
+                    def mongoClient = new MongoClient('mongo-service.mongo-namespace', 27017)
+                    def db = mongoClient.getDatabase('rc_recommunity')
+                    def modelsCollection = db.getCollection('models')
+                    def commentsCollection = db.getCollection('comments')
+                    def usersCollection = db.getCollection('users')
+                    
+                    def newModelsCount = modelsCollection.countDocuments()
+                    def newCommentsCount = commentsCollection.countDocuments()
+                    def newUsersCount = usersCollection.countDocuments()
+                    
+                    if (newModelsCount > 0 && newCommentsCount > 0 && newUsersCount > 0) {
+                        echo 'MongoDB inputs check passed for the main branch.'
+                    } else {
+                        error 'MongoDB inputs check failed for the main branch.'
+                    }
+                }
+            }
+        }
+
+        stage('Check GitHub Push - Main Branch') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    echo 'Checking GitHub push for the main branch...'
+                    // Clone the repository and check for specific files or changes
+                    git 'https://github.com/omersal150/RC-Recommunity-Project.git'
+                    if (fileExists('app.py')) {
+                        echo 'GitHub push check passed for the main branch.'
+                    } else {
+                        error 'GitHub push check failed for the main branch.'
+                    }
+                }
+            }
+        }
+
+        // Add more stages for building, testing, deploying, etc.
     }
 }
