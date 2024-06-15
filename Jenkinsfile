@@ -2,17 +2,15 @@ pipeline {
     agent {
         kubernetes {
             label 'jenkins-slave-pipeline-a'
-            defaultContainer 'custom'
+            defaultContainer 'jnlp'
             yaml """
 apiVersion: v1
 kind: Pod
 spec:
   serviceAccountName: jenkins-sa
   containers:
-  - name: custom
-    image: roiyki/inbound-agent-root:latest
-    command:
-    - cat
+  - name: jnlp
+    image: jenkins/inbound-agent:4.7-1-alpine
     tty: true
 """
         }
@@ -20,7 +18,7 @@ spec:
 
     environment {
         GITHUB_TOKEN = credentials('github-secret-read-jenkins')
-        GITHUB_USER = 'Roiyki'
+        GITHUB_USER = 'Omersal'
         REPO = 'omersal/rc-recommunity'
         GIT_CREDENTIALS_ID = 'github-secret-read-jenkins'
         MONGO_URI = 'mongodb://mongo-service.mongo-namespace:27017/rc_recommunity'
@@ -30,7 +28,7 @@ spec:
         stage('Setup Git') {
             steps {
                 catchError {
-                    container('custom') {
+                    container('jnlp') {
                         sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/Rc-recommunity'
                     }
                 }
@@ -40,7 +38,7 @@ spec:
         stage('Clone and Switch to Feature Branch') {
             steps {
                 catchError {
-                    container('custom') {
+                    container('jnlp') {
                         sh '''
                             cd /home/jenkins/agent/workspace
                             git clone https://${GITHUB_TOKEN}@github.com/${REPO}.git
@@ -54,8 +52,8 @@ spec:
                             git checkout main -- .
                             git add .
                             git pull origin main
-                            git config --global user.email "roiydonagi@gmail.com"
-                            git config --global user.name "Roiyki"
+                            git config --global user.email "omersal@example.com"
+                            git config --global user.name "Omersal"
                             git commit -m "Copy files from main branch to feature branch" || true
                             git push origin feature
                         '''
@@ -67,7 +65,7 @@ spec:
         stage('Install Requirements') {
             steps {
                 catchError {
-                    container('custom') {
+                    container('jnlp') {
                         dir('/home/jenkins/agent/workspace/Persudoku') {
                             sh "pip install -r app/Backend/requirements.txt"
                         }
@@ -79,7 +77,7 @@ spec:
         stage('Run Pytest') {
             steps {
                 catchError {
-                    container('custom') {
+                    container('jnlp') {
                         dir('/home/jenkins/agent/workspace/Persudoku') {
                             sh "pytest --junitxml=test-results.xml app/tests/test_main.py"
                         }
@@ -98,7 +96,7 @@ spec:
                     def manualApprovalGranted = input message: 'Approve deployment to main?', ok: 'Approve'
 
                     if (manualApprovalGranted) {
-                        container('custom') {
+                        container('jnlp') {
                             dir('/home/jenkins/agent/workspace/Persudoku') {
                                 def commitHash = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
                                 sh """
@@ -116,7 +114,7 @@ spec:
                             }
                         }
                     } else {
-                        container('custom') {
+                        container('jnlp') {
                             dir('/home/jenkins/agent/workspace/Persudoku') {
                                 sh 'git checkout feature'
                                 sh 'git reset --hard HEAD~1'
