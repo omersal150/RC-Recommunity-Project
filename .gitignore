@@ -4,4 +4,3 @@ __pycache__/
 .env
 argocd/argocd.exe
 argocd.exe
-argocd
