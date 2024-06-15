@@ -1,7 +1,7 @@
 namespace: jenkins-namespace
 
 jenkinsMaster:
-  image: roiyki/jenkins-helm:latest
+  image: jenkins/jenkins:latest
   imagePullPolicy: IfNotPresent
   services:
       jenkinsmasternodeport:

@@ -7,8 +7,11 @@ kubectl port-forward -n mongo-namespace deployment/rc-recommunity-flask 8080:808
 kubectl port-forward -n mongo-namespace service/mongo-service 27017:27017 &
 
 # Forward port 3000 from the grafana deployment
-kubectl port-forward svc/grafana 3000:3000 -n monitoring-namespace &
+kubectl port-forward deployment/grafana 32200:32200 -n monitoring-namespace &
 
 
 # Forward port 9090 from the prometheus deployment
-kubectl port-forward svc/prometheus 9090:9090 -n monitoring-namespace
+kubectl port-forward deployment/prometheus 32100:32100 -n monitoring-namespace &
+
+# Forward port 31000 from the jenkins deployment
+kubectl port-forward -n deployment/jenkins 31000:31000 -n jenkins-namespace

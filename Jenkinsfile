@@ -21,9 +21,9 @@ spec:
     environment {
         GITHUB_TOKEN = credentials('github-secret-read-jenkins')
         GITHUB_USER = 'Roiyki'
-        REPO = 'Roiyki/Persudoku'
+        REPO = 'omersal/rc-recommunity'
         GIT_CREDENTIALS_ID = 'github-secret-read-jenkins'
-        MONGO_URI = 'mongodb://mongo-service.mongo-namespace:27017/sudoku_app'
+        MONGO_URI = 'mongodb://mongo-service.mongo-namespace:27017/rc_recommunity'
     }
 
     stages {
@@ -31,7 +31,7 @@ spec:
             steps {
                 catchError {
                     container('custom') {
-                        sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/Persudoku'
+                        sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/Rc-recommunity'
                     }
                 }
             }
