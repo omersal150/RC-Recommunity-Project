@@ -2,3 +2,6 @@
 __pycache__/
 .py*
 .env
+argocd/argocd.exe
+argocd.exe
+argocd
