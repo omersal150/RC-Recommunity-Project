@@ -1,97 +1,71 @@
 pipeline {
-    agent any
-    
+    agent {
+        kubernetes {
+            yaml '''
+            apiVersion: v1
+            kind: Pod
+            spec:
+              containers:
+              - name: maven
+                image: maven:alpine
+                command:
+                - cat
+                tty: true
+              - name: python
+                image: python:3.9-alpine
+                command:
+                - cat
+                tty: true
+              - name: ez-docker-helm-build
+                image: ezezeasy/ez-docker-helm-build:1.41
+                imagePullPolicy: Always
+                securityContext:
+                  privileged: true
+            '''
+        }
+    }
+
+    environment {
+        DOCKER_IMAGE = "omersal/rc-recommunity:latest"
+    }
+
     stages {
-        stage('Check MongoDB Inputs - Feature Branch') {
-            when {
-                branch 'feature'
-            }
+        stage('Checkout Code') {
             steps {
                 script {
-                    echo 'Checking MongoDB inputs for the feature branch...'
-                    // Connect to MongoDB and check inputs
-                    def mongoClient = new MongoClient('mongo-service.mongo-namespace', 27017)
-                    def db = mongoClient.getDatabase('rc_recommunity')
-                    def modelsCollection = db.getCollection('models')
-                    def commentsCollection = db.getCollection('comments')
-                    def usersCollection = db.getCollection('users')
-                    
-                    def newModelsCount = modelsCollection.countDocuments()
-                    def newCommentsCount = commentsCollection.countDocuments()
-                    def newUsersCount = usersCollection.countDocuments()
-                    
-                    if (newModelsCount > 0 && newCommentsCount > 0 && newUsersCount > 0) {
-                        echo 'MongoDB inputs check passed for the feature branch.'
-                    } else {
-                        error 'MongoDB inputs check failed for the feature branch.'
+                    checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/omersal150/RC-Recommunity-Project.git']]])
+                }
+            }
+        }
+
+        stage('Build and Run Python Container') {
+            steps {
+                container('ez-docker-helm-build') {
+                    script {
+                        // Build Python Docker image
+                        sh "docker build -t ${DOCKER_IMAGE}:backend ./fast_api"
                     }
                 }
             }
         }
 
-        stage('Check GitHub Push - Feature Branch') {
-            when {
-                branch 'feature'
-            }
-            steps {
-                script {
-                    echo 'Checking GitHub push for the feature branch...'
-                    // Clone the repository and check for specific files or changes
-                    git 'https://github.com/omersal150/RC-Recommunity-Project.git'
-                    if (fileExists('app.py')) {
-                        echo 'GitHub push check passed for the feature branch.'
-                    } else {
-                        error 'GitHub push check failed for the feature branch.'
-                    }
-                }
-            }
-        }
 
-        stage('Check MongoDB Inputs - Main Branch') {
+        stage('Build and Push Docker Images') {
             when {
                 branch 'main'
             }
             steps {
-                script {
-                    echo 'Checking MongoDB inputs for the main branch...'
-                    // Connect to MongoDB and check inputs
-                    def mongoClient = new MongoClient('mongo-service.mongo-namespace', 27017)
-                    def db = mongoClient.getDatabase('rc_recommunity')
-                    def modelsCollection = db.getCollection('models')
-                    def commentsCollection = db.getCollection('comments')
-                    def usersCollection = db.getCollection('users')
-                    
-                    def newModelsCount = modelsCollection.countDocuments()
-                    def newCommentsCount = commentsCollection.countDocuments()
-                    def newUsersCount = usersCollection.countDocuments()
-                    
-                    if (newModelsCount > 0 && newCommentsCount > 0 && newUsersCount > 0) {
-                        echo 'MongoDB inputs check passed for the main branch.'
-                    } else {
-                        error 'MongoDB inputs check failed for the main branch.'
+                container('ez-docker-helm-build') {
+                    script {
+                        withDockerRegistry(credentialsId: 'rc-recommunity-id') {
+                            // Build and Push Maven Docker image
+                            sh "docker build -t ${DOCKER_IMAGE}:react1 ./test1"
+                            sh "docker push ${DOCKER_IMAGE}:react1"
+                            sh "docker push ${DOCKER_IMAGE}:backend"
+                        }
                     }
                 }
             }
         }
-
-        stage('Check GitHub Push - Main Branch') {
-            when {
-                branch 'main'
-            }
-            steps {
-                script {
-                    echo 'Checking GitHub push for the main branch...'
-                    // Clone the repository and check for specific files or changes
-                    git 'https://github.com/omersal150/RC-Recommunity-Project.git'
-                    if (fileExists('app.py')) {
-                        echo 'GitHub push check passed for the main branch.'
-                    } else {
-                        error 'GitHub push check failed for the main branch.'
-                    }
-                }
-            }
-        }
-
-        // Add more stages for building, testing, deploying, etc.
     }
 }
