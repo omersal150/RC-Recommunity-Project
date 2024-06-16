@@ -31,8 +31,11 @@ All project links:
 Main website
 http://127.0.0.1:30000/
 
+ArgoCD
+https://127.0.0.1:30080/
+
 Grafana
-http://127.0.0.1:3000/
+http://127.0.0.1:32200/
 
 Prometheus
 http://127.0.0.1:32100/
@@ -101,4 +104,5 @@ kubectl annotate deployment jenkins-master -n jenkins-namespace meta.helm.sh/rel
 
 
 [Promethues Working IP for grafana communication]
-10.1.0.242:9090
+kubectl get pods -n monitoring-namespace -o wide
+:9090 port after port forwarding it

@@ -1,32 +1,33 @@
 pipeline {
     agent {
         kubernetes {
-            yaml '''
-            apiVersion: v1
-            kind: Pod
-            spec:
-              containers:
-              - name: maven
-                image: maven:alpine
-                command:
-                - cat
-                tty: true
-              - name: python
-                image: python:3.9-alpine
-                command:
-                - cat
-                tty: true
-              - name: ez-docker-helm-build
-                image: ezezeasy/ez-docker-helm-build:1.41
-                imagePullPolicy: Always
-                securityContext:
-                  privileged: true
-            '''
+            yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: maven
+    image: maven:alpine
+    command:
+    - cat
+    tty: true
+  - name: python
+    image: python:3.9-alpine
+    command:
+    - cat
+    tty: true
+  - name: ez-docker-helm-build
+    image: ezezeasy/ez-docker-helm-build:1.41
+    imagePullPolicy: Always
+    securityContext:
+      privileged: true
+"""
         }
     }
 
     environment {
-        DOCKER_IMAGE = "omersal/rc-recommunity:latest"
+        DOCKER_IMAGE = "omersal/rc-recommunity"
+        DOCKER_CREDENTIALS = "rc-recommunity-id"
     }
 
     stages {
@@ -43,12 +44,11 @@ pipeline {
                 container('ez-docker-helm-build') {
                     script {
                         // Build Python Docker image
-                        sh "docker build -t ${DOCKER_IMAGE}:backend ./fast_api"
+                        sh "docker build -t ${DOCKER_IMAGE}:backend ./rc-recommunity"
                     }
                 }
             }
         }
-
 
         stage('Build and Push Docker Images') {
             when {
@@ -57,11 +57,9 @@ pipeline {
             steps {
                 container('ez-docker-helm-build') {
                     script {
-                        withDockerRegistry(credentialsId: 'rc-recommunity-id') {
-                            // Build and Push Maven Docker image
-                            sh "docker build -t ${DOCKER_IMAGE}:react1 ./test1"
-                            sh "docker push ${DOCKER_IMAGE}:react1"
-                            sh "docker push ${DOCKER_IMAGE}:backend"
+                        withDockerRegistry(credentialsId: DOCKER_CREDENTIALS) {
+                            // Push Docker image
+                            sh "docker push ${DOCKER_IMAGE}:latest"
                         }
                     }
                 }
