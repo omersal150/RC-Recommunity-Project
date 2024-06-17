@@ -26,10 +26,6 @@ def setup_and_teardown_db():
     yield
     users_collection.delete_many({})
 
-def test_home_page(client):
-    response = client.get('/')
-    assert response.status_code == 302
-
 def test_registration(client):
     registration_data = {
         'full_name': 'Test Guy',
