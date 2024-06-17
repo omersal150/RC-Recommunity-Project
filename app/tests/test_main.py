@@ -3,17 +3,14 @@ import sys
 import pytest
 from pymongo import MongoClient
 
-# Add the project directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from app.Backend.main import app
 
-# Define the MongoDB URI for testing
-TEST_MONGO_URI = 'mongodb://mongo-service.mongo-namespace:27017/rc_recommunity'  # Update URI to use Docker service name
+TEST_MONGO_URI = 'mongodb://mongo-service.mongo-namespace:27017/rc_recommunity'
 
 @pytest.fixture
 def client():
-    # Set up the Flask app for testing
     app.testing = True
     app.config['MONGO_URI'] = TEST_MONGO_URI
     with app.test_client() as client:
@@ -26,27 +23,23 @@ def setup_and_teardown_db():
     db = client.get_database()
     users_collection = db.users
     
-    # Clean up the test database before and after each test
     yield
     users_collection.delete_many({})
 
 def test_home_page(client):
     response = client.get('/')
-    assert response.status_code == 302  # Ensure it redirects
+    assert response.status_code == 302
 
 def test_registration(client):
     registration_data = {
-        'full_name': 'John Doe',
-        'email': 'john@example.com',
-        'password': 'password123'
+        'full_name': 'Test Guy',
+        'email': 'Test@gmail.com',
+        'password': '123',
+        'DB': '01/01/2000'
     }
     print("Your Registration Data:", registration_data)
 
-    # Simulate a registration request
     response = client.post('/register', data=registration_data, content_type='application/x-www-form-urlencoded')
-
-    # Print request data (commented out because it causes issues)
-    # print("Registration Request Data:", response.request.data)
 
     # Print response status code and headers
     print("Registration Response Status Code:", response.status_code)
@@ -58,25 +51,23 @@ def test_registration(client):
 
 def test_registration_another_user(client):
     registration_data = {
-        'full_name': 'Another User',
-        'email': 'anotheruser@example.com',
-        'password': 'anotherpassword123'
+        'users': 'Test2',
+        'email': 'test2@gmail.com',
+        'password': '123',
+        'DB': '01/01/2000'
     }
 
-    # Simulate a registration request for another user
     response = client.post('/register', data=registration_data)
 
-    # Check if registration was successful
-    assert response.status_code == 302  # Expecting a redirect status code
-    assert response.headers['Location'] == '/login'  # Ensure it redirects to the relative login page
+    # Check if registration worked
+    assert response.status_code == 302
+    assert response.headers['Location'] == '/login' #moves to login page
 
-    # Ensure that the user data is stored in the database
-    client = MongoClient(TEST_MONGO_URI)  # Reconnect to the MongoDB using the test URI
+    client = MongoClient(TEST_MONGO_URI)
     db = client.get_database()
-    user = db.users.find_one({'email': 'anotheruser@example.com'})  # Access the users collection
+    user = db.users.find_one({'email': 'anotheruser@example.com'})
     assert user is not None
-    assert user['full_name'] == 'Another User'
+    assert user['users'] == 'Another User'
     assert user['email'] == 'anotheruser@example.com'
-    # Ensure the password is hashed or stored securely in the database
-    # For this test, you can check if the password matches the expected value
-    assert user['password'] == 'anotherpassword123'  # This line should be updated based on how passwords are stored in the database
+    assert user['password'] == '123'
+    assert user['DB'] == '01/01/2000'

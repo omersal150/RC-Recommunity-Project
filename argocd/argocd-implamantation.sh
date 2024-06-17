@@ -3,10 +3,10 @@
 # Store the Argo CD initial admin password in a variable
 PASSWORD=$(kubectl -n argocd-namespace get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 
-# Log in to Argo CD
+# Login
 ./argocd login 192.168.68.60:30080 --username admin --password $PASSWORD --insecure
 
-# Update the password to a new one
+# Update password
 ./argocd account update-password --current-password $PASSWORD --new-password 3372 --insecure
 
 # Log in with the new password
