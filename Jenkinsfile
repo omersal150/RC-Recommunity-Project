@@ -43,8 +43,7 @@ spec:
             steps {
                 container('ez-docker-helm-build') {
                     script {
-                        // Build Python Docker image
-                        sh "docker build -t ${DOCKER_IMAGE}:backend ./rc-recommunity"
+                        sh "docker build -t ${DOCKER_IMAGE}:latest ./rc-recommunity"
                     }
                 }
             }
@@ -58,7 +57,6 @@ spec:
                 container('ez-docker-helm-build') {
                     script {
                         withDockerRegistry(credentialsId: DOCKER_CREDENTIALS) {
-                            // Push Docker image
                             sh "docker push ${DOCKER_IMAGE}:latest"
                         }
                     }

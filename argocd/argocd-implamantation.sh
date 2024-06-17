@@ -12,8 +12,8 @@ PASSWORD=$(kubectl -n argocd-namespace get secret argocd-initial-admin-secret -o
 # Log in with the new password
 ./argocd login 192.168.68.60:30080 --username admin --password 3372 --insecure
 
-# Create or update the Persudoku application
-./argocd app create persudoku \
+# Create or update rc-recommunity
+./argocd app create rc-recommunity \
   --project default \
   --repo https://github.com/omersal150/RC-Recommunity-Project \
   --path charts/appchart \
