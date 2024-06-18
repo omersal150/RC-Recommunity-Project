@@ -1,0 +1,5 @@
+Flask
+Flask-PyMongo
+Werkzeug
+pytest
+pytest-flask

@@ -1,77 +1,45 @@
 pipeline {
-    agent {
-        kubernetes {
-            yaml '''
-            apiVersion: v1
-            kind: Pod
-            spec:
-                serviceAccount: jenkins-sa
-                containers:
-                  - name: slave
-                    image: docker:latest
-                    tty: true
-                    securityContext:
-                        privileged: true
-                  - name: pytest
-                    image: omersal/jenkins-agent-github
-                    tty: true
-                    securityContext:
-                        privileged: true
-                  - name: maven
-                    image: maven:alpine
-                    command:
-                    - cat
-                    tty: true
-            '''
-        }
-    }
-
+    agent any
     stages {
-        stage('checkout git') {
+        stage('Checkout') {
+            steps {
+                // Checkout the code from your GitHub repository
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/omersal150/RC-Recommunity-Project.git']]])
+            }
+        }
+        stage('Run Tests') {
             steps {
                 script {
-                    checkout scm
+                    // Ensure pytest is installed
+                    sh '/path/to/pip install pytest' // Replace /path/to/pip with the actual path to pip
+                    // Run pytest
+                    sh 'pytest tests'
                 }
             }
         }
-
-        stage('testing with pytest') {
-            steps{
-                container('pytest') {
-                    script {
-                        sh 'cd ./app && python -m pytest || [[ $? -eq 1 ]]'
+        stage('Build docker image') {
+            steps {
+                script {
+                    sh 'docker build -t omersal/rc-recommunity .'
+                }
+            }
+        }
+        stage('Push image to Hub') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
+                        sh 'docker login -u omersal -p ${dockerhubpwd}'
                     }
+                    sh 'docker push omersal/rc-recommunity'
                 }
             }
         }
-        // Build and push with build tag (replace with actual build commands)
-        stage('Build and Push the image with tags') {
-            environment {
-                auth = 'dockerauth'
-            }
-            steps { 
-                container('slave') {
-                    script {
-                        def image = docker.build("mikey8520/final-project", "./app")
-                        withDockerRegistry(credentialsId: 'dockerauth') {
-                            image.push("${env.BUILD_NUMBER - 11}")
-                            image.push("latest")
-                        }
-                    }
+        stage('Deploy to k8s') {
+            steps {
+                script {
+                    kubernetesDeploy(configs: 'deploymentservice.yaml', kubeconfigId: 'k8sconfigpwd')
                 }
             }
-        }
-    }
-    post {
-        always {
-            echo 'Pipeline POST:'
-        }
-        success {
-            echo 'Pipeline SUCCESS!'
-        }
-        failure {
-            echo 'Pipeline FAILED, check the logs for more information!'
         }
     }
 }
-
