@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('checkout git') {
             steps {
-                checkout scm
+                git branch: 'main', credentialsId: 'cf48be2e-b0fe-4844-881f-cb0f37637022', url: 'https://github.com/omersal150/RC-Recommunity-Project.git'
             }
         }
 
@@ -34,34 +34,12 @@ pipeline {
             }
         }
 
-        // Build and push with build tag (replace with actual build commands)
-        stage('Build and Push the image with tags') {
-            agent {
-                kubernetes {
-                    yaml '''
-                    apiVersion: v1
-                    kind: Pod
-                    spec:
-                        serviceAccount: jenkins-sa
-                        containers:
-                          - name: maven
-                            image: maven:alpine
-                            command:
-                            - cat
-                            tty: true
-                    '''
-                }
-            }
-            environment {
-                auth = 'dockerauth'
-            }
+        // Build and push the image to Docker Hub
+        stage('Build and Push the image to Docker Hub') {
             steps { 
                 script {
-                    docker.withRegistry('https://registry.example.com', 'dockerauth') {
-                        def image = docker.build("omersal/rc-recommunity", "./app")
-                        image.push("${env.BUILD_NUMBER - 11}")
-                        image.push("latest")
-                    }
+                    def dockerImage = docker.build("omersal/rc-recommunity:latest", "./app")
+                    dockerImage.push()
                 }
             }
         }
