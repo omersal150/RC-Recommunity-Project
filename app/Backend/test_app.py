@@ -2,11 +2,11 @@ import sys
 import os
 import pytest
 from flask import session  # Import the session object
-from Backend.main import app, mongo  # Import the Flask app and MongoDB connection object
+from main import app, mongo  # Adjusted import path
 
-# Add the 'app' directory to the system path
-app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app'))
-sys.path.append(app_path)
+# Add the current directory to the system path
+current_directory = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(current_directory)
 
 @pytest.fixture
 def client():

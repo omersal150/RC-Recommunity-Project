@@ -10,5 +10,8 @@ kubectl port-forward deployment/grafana 32200:32200 -n monitoring-namespace &
 kubectl port-forward deployment/prometheus 32100:9090 -n monitoring-namespace &
 
 # Forward port 31000 from the jenkins deployment
-kubectl port-forward deployment/jenkins-master 31000:8080 -n jenkins-namespace
+kubectl port-forward deployment/jenkins-master 31000:31000 -n jenkins-namespace &
+
+kubectl port-forward deployment/jenkins-master 8080:8080 -n jenkins-namespace
+
 
