@@ -11,7 +11,7 @@ pipeline {
             steps {
                 script {
                     // Ensure pytest is installed
-                    sh '/path/to/pip install pytest' // Replace /path/to/pip with the actual path to pip
+                    sh 'pip install pytest'
                     // Run pytest
                     sh 'pytest tests'
                 }
