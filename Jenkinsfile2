@@ -1,42 +1,31 @@
 pipeline {
-    agent {
-        kubernetes {
-            yaml '''
-            apiVersion: v1
-            kind: Pod
-            spec:
-                serviceAccount: jenkins-sa
-                containers:
-                  - name: slave
-                    image: docker:latest
-                    tty: true
-                    securityContext:
-                        privileged: true
-                  - name: pytest
-                    image: omersal/testimage
-                    tty: true
-                    securityContext:
-                        privileged: true
-                  - name: maven
-                    image: maven:alpine
-                    command:
-                    - cat
-                    tty: true
-            '''
-        }
-    }
+    agent any
 
     stages {
         stage('checkout git') {
             steps {
-                script {
-                    checkout scm
-                }
+                checkout scm
             }
         }
 
         stage('testing with pytest') {
-            steps{
+            agent {
+                kubernetes {
+                    yaml '''
+                    apiVersion: v1
+                    kind: Pod
+                    spec:
+                        serviceAccount: jenkins-sa
+                        containers:
+                          - name: pytest
+                            image: omersal/testimage
+                            tty: true
+                            securityContext:
+                                privileged: true
+                    '''
+                }
+            }
+            steps {
                 container('pytest') {
                     script {
                         sh 'cd ./app && python -m pytest || [[ $? -eq 1 ]]'
@@ -44,24 +33,40 @@ pipeline {
                 }
             }
         }
+
         // Build and push with build tag (replace with actual build commands)
         stage('Build and Push the image with tags') {
+            agent {
+                kubernetes {
+                    yaml '''
+                    apiVersion: v1
+                    kind: Pod
+                    spec:
+                        serviceAccount: jenkins-sa
+                        containers:
+                          - name: maven
+                            image: maven:alpine
+                            command:
+                            - cat
+                            tty: true
+                    '''
+                }
+            }
             environment {
                 auth = 'dockerauth'
             }
             steps { 
-                container('slave') {
-                    script {
+                script {
+                    docker.withRegistry('https://registry.example.com', 'dockerauth') {
                         def image = docker.build("omersal/rc-recommunity", "./app")
-                        withDockerRegistry(credentialsId: 'dockerauth') {
-                            image.push("${env.BUILD_NUMBER - 11}")
-                            image.push("latest")
-                        }
+                        image.push("${env.BUILD_NUMBER - 11}")
+                        image.push("latest")
                     }
                 }
             }
         }
     }
+
     post {
         always {
             echo 'Pipeline POST:'
@@ -74,4 +79,3 @@ pipeline {
         }
     }
 }
-
