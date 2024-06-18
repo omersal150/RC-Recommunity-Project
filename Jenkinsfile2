@@ -13,7 +13,7 @@ pipeline {
                     securityContext:
                         privileged: true
                   - name: pytest
-                    image: omersal/tests
+                    image: omersal/testimage
                     tty: true
                     securityContext:
                         privileged: true
